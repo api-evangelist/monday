@@ -1,0 +1,1583 @@
+"""
+Monday.com GraphQL API Schema
+Source: https://developer.monday.com/api-reference/
+"""
+
+# ─── Scalars ──────────────────────────────────────────────────────────────────
+
+scalar ISO8601DateTime
+scalar JSON
+scalar Upload
+
+# ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum BoardType {
+  board
+  sub_items_board
+  document
+  custom_object
+}
+
+enum BoardKind {
+  public
+  private
+  share
+}
+
+enum ColumnType {
+  auto_number
+  board_relation
+  button
+  checkbox
+  color_picker
+  country
+  creation_log
+  date
+  dependency
+  doc
+  dropdown
+  email
+  file
+  formula
+  hour
+  item_assignees
+  item_id
+  last_updated
+  link
+  location
+  long_text
+  mirror
+  name
+  numbers
+  people
+  phone
+  progress
+  rating
+  status
+  subtasks
+  tags
+  team
+  text
+  timeline
+  time_tracking
+  vote
+  week
+  world_clock
+}
+
+enum UserKind {
+  all
+  non_guests
+  guests
+  non_pending
+}
+
+enum WorkspaceKind {
+  open
+  closed
+}
+
+enum PlanVersion {
+  free
+  basic
+  standard
+  pro
+  enterprise
+}
+
+enum ViewType {
+  BoardView
+  WorkspaceView
+}
+
+enum WebhookEventType {
+  create_item
+  create_update
+  change_column_value
+  change_specific_column_value
+  change_status_column_value
+  change_subitem_column_value
+  create_subitem
+  create_subitem_update
+  move_item_to_board
+  move_item_to_group
+  item_deleted
+  item_archived
+  item_restored
+  column_values_updated
+  board_deleted
+  board_archived
+}
+
+enum State {
+  active
+  all
+  archived
+  deleted
+}
+
+enum SubscriberKind {
+  owner
+  subscriber
+}
+
+enum NotificationTargetType {
+  Project
+  Post
+}
+
+# ─── Core Object Types ────────────────────────────────────────────────────────
+
+"""A monday.com account (organisation)."""
+type Account {
+  id: ID!
+  name: String!
+  slug: String
+  logo: String
+  plan: Plan
+  country_code: String
+  first_day_of_the_week: String
+  show_timeline_weekends: Boolean
+  tier: String
+  products: [AccountProduct]
+}
+
+type AccountSlug {
+  id: ID!
+  slug: String!
+}
+
+type AccountProduct {
+  id: ID
+  kind: String
+}
+
+"""A subscription plan for an account."""
+type Plan {
+  max_users: Int!
+  period: String
+  tier: String
+  version: PlanVersion
+}
+
+"""An API key object."""
+type APIKey {
+  id: ID!
+  name: String!
+  created_at: ISO8601DateTime
+  last_used_at: ISO8601DateTime
+}
+
+# ─── User & Team ──────────────────────────────────────────────────────────────
+
+"""A monday.com user."""
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  url: String
+  photo_original: String
+  photo_thumb: String
+  photo_thumb_small: String
+  photo_tiny: String
+  created_at: ISO8601DateTime
+  updated_at: ISO8601DateTime
+  birthday: String
+  country_code: String
+  is_admin: Boolean
+  is_guest: Boolean
+  is_pending: Boolean
+  is_view_only: Boolean
+  join_date: String
+  location: String
+  mobile_phone: String
+  phone: String
+  time_zone_identifier: String
+  title: String
+  uid: ID!
+  account: Account
+  teams: [Team]
+  sign_up_product_kind: String
+  enabled: Boolean
+  current_language: String
+}
+
+"""Minimal user details returned in nested contexts."""
+type UserDetails {
+  id: ID!
+  name: String!
+  email: String!
+  photo_thumb: String
+}
+
+"""A monday.com team."""
+type Team {
+  id: ID!
+  name: String!
+  picture_url: String
+  users: [User]
+}
+
+"""Minimal team details returned in nested contexts."""
+type TeamDetails {
+  id: ID!
+  name: String!
+  picture_url: String
+}
+
+# ─── Workspace ────────────────────────────────────────────────────────────────
+
+"""A monday.com workspace."""
+type Workspace {
+  id: ID!
+  name: String!
+  kind: WorkspaceKind!
+  description: String
+  created_at: ISO8601DateTime
+  owners_subscribers: [User]
+  teams_subscribers: [Team]
+  users_subscribers: [User]
+  settings: WorkspaceSettings
+  state: State
+  is_default_workspace: Boolean
+  account_product: AccountProduct
+}
+
+"""Minimal workspace details returned in nested contexts."""
+type WorkspaceDetails {
+  id: ID!
+  name: String!
+  kind: WorkspaceKind!
+}
+
+type WorkspaceSettings {
+  icon: WorkspaceIcon
+}
+
+type WorkspaceIcon {
+  image: String
+  color: String
+}
+
+# ─── Board ────────────────────────────────────────────────────────────────────
+
+"""A monday.com board."""
+type Board {
+  id: ID!
+  name: String!
+  description: String
+  board_folder_id: ID
+  board_kind: BoardKind!
+  type: BoardType
+  columns: [Column]
+  communication: JSON
+  creator: User
+  groups: [Group]
+  items_count: Int
+  items_page(limit: Int, cursor: String, query_params: ItemsQuery): ItemsPage
+  owners: [User]
+  permissions: String
+  state: State
+  subscribers: [User]
+  tags: [Tag]
+  team_owners: [Team]
+  team_subscribers: [Team]
+  top_group: Group
+  updated_at: ISO8601DateTime
+  url: String
+  views: [BoardView]
+  workspace: Workspace
+  workspace_id: ID
+}
+
+"""Minimal board details returned in nested contexts."""
+type BoardDetails {
+  id: ID!
+  name: String!
+  board_kind: BoardKind!
+}
+
+"""A subscriber (user) of a board."""
+type BoardsSubscriber {
+  id: ID!
+  name: String!
+  email: String!
+  kind: SubscriberKind
+}
+
+# ─── Column ───────────────────────────────────────────────────────────────────
+
+"""A column definition on a board."""
+type Column {
+  id: ID!
+  archived: Boolean
+  description: String
+  settings_str: String
+  title: String!
+  type: ColumnType!
+  width: Int
+}
+
+"""Minimal column details returned in nested contexts."""
+type BoardColumn {
+  id: ID!
+  title: String!
+  type: ColumnType!
+}
+
+# ─── Group ────────────────────────────────────────────────────────────────────
+
+"""A group of items on a board."""
+type Group {
+  id: ID!
+  title: String!
+  archived: Boolean
+  color: String
+  deleted: Boolean
+  items_page(limit: Int, cursor: String): ItemsPage
+  position: String
+}
+
+"""Minimal group details."""
+type GroupDetails {
+  id: ID!
+  title: String!
+  color: String
+}
+
+# ─── Item ─────────────────────────────────────────────────────────────────────
+
+"""A monday.com item (row on a board)."""
+type Item {
+  id: ID!
+  name: String!
+  assets: [Asset]
+  board: Board
+  column_values: [ColumnValue]
+  created_at: ISO8601DateTime
+  creator: User
+  creator_id: String
+  email: String
+  group: Group
+  linked_items: [Item]
+  parent_item: Item
+  relative_link: String
+  state: State
+  subitems: [Item]
+  subscribers: [User]
+  updated_at: ISO8601DateTime
+  updates(limit: Int, page: Int): [Update]
+  url: String
+}
+
+"""Minimal item details returned in nested contexts."""
+type ItemDetails {
+  id: ID!
+  name: String!
+  state: State
+}
+
+"""A column value entry on an item."""
+type ItemColumn {
+  id: ID!
+  title: String!
+  value: String
+  text: String
+  type: ColumnType!
+}
+
+"""A paginated page of items."""
+type ItemsPage {
+  cursor: String
+  items: [Item]!
+}
+
+"""Items page filtered by column values."""
+type ItemsPageByColumnValues {
+  cursor: String
+  items: [Item]!
+}
+
+"""Cursor for paginating items."""
+type Cursor {
+  cursor: String!
+}
+
+# ─── Column Value Union Types ─────────────────────────────────────────────────
+
+interface ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+}
+
+type TextColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+}
+
+type NumberColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  number: Float
+}
+
+type StatusColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  index: Int
+  is_done: Boolean
+  label: StatusLabel
+  label_style: StatusLabelStyle
+  update_id: ID
+}
+
+type StatusLabel {
+  text: String
+  color: String
+  border: String
+  var_name: String
+}
+
+type StatusLabelStyle {
+  color: String
+  border: String
+}
+
+type DateColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  date: String
+  time: String
+  icon: String
+}
+
+type PersonColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  persons_and_teams: [PersonOrTeam]
+}
+
+type PersonOrTeam {
+  id: ID!
+  kind: String!
+}
+
+type CheckboxColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  checked: Boolean
+  updated_at: ISO8601DateTime
+}
+
+type ConnectBoardColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  linked_item_ids: [ID]
+  linked_items: [Item]
+}
+
+type DependencyColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  linked_item_ids: [ID]
+  linked_items: [Item]
+  display_value: String
+}
+
+type RatingColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  rating: Int
+  updated_at: ISO8601DateTime
+}
+
+type LinkColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  url: String
+  url_text: String
+}
+
+type FileColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  files: [FileAssetValue]
+}
+
+type FileAssetValue {
+  asset_id: ID
+  is_image: String
+  file_extension: String
+  file_size: Int
+  name: String
+  url: String
+}
+
+type EmailColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  email: String
+  label: String
+}
+
+type PhoneColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  phone: String
+  country_short_name: String
+}
+
+type MirrorColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  display_value: String
+  mirrored_items: [MirroredItem]
+}
+
+type MirroredItem {
+  linked_item: Item
+  linked_board_id: ID
+}
+
+type TimelineColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  from: String
+  to: String
+  visualization_type: String
+}
+
+type TagColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  tag_ids: [Int]
+  tags: [Tag]
+}
+
+type HourColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  hour: Int
+  minute: Int
+  updated_at: ISO8601DateTime
+}
+
+type DropdownColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  values: [DropdownValue]
+}
+
+type DropdownValue {
+  id: ID!
+  label: String!
+}
+
+type CountryColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  country_code: String
+  country_name: String
+}
+
+type WorldClockColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  timezone: String
+}
+
+type WeekColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  start_date: String
+  end_date: String
+}
+
+type LocationColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  lat: Float
+  lng: Float
+  address: String
+  city: String
+  country: String
+  country_short_name: String
+  place_id: String
+  street: String
+  street_number: String
+}
+
+type FormulaColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  display_value: String
+}
+
+type VoteColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  voter_ids: [ID]
+  voters: [User]
+  vote_count: Int
+}
+
+type ProgressColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  display_value: String
+}
+
+type ItemIdColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  item_id: ID
+}
+
+type CreationLogColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  created_at: ISO8601DateTime
+  creator: User
+  creator_id: ID
+}
+
+type LastUpdatedColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  updated_at: ISO8601DateTime
+  updater: User
+  updater_id: ID
+}
+
+type ColorPickerColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  color: String
+}
+
+type TimeTrackingColumnValue implements ColumnValue {
+  id: ID!
+  text: String
+  type: ColumnType!
+  value: String
+  column: Column!
+  duration: Int
+  running: Boolean
+  history: [TimeTrackingEntry]
+  started_at: ISO8601DateTime
+  ended_at: ISO8601DateTime
+}
+
+type TimeTrackingEntry {
+  id: ID!
+  started_user_id: ID
+  ended_user_id: ID
+  started_at: ISO8601DateTime
+  ended_at: ISO8601DateTime
+  manually_entered_end_time: Boolean
+  manually_entered_start_time: Boolean
+  status: String
+}
+
+# ─── Update ───────────────────────────────────────────────────────────────────
+
+"""An update (comment) on an item."""
+type Update {
+  id: ID!
+  body: String!
+  text_body: String
+  created_at: ISO8601DateTime
+  updated_at: ISO8601DateTime
+  creator: User
+  creator_id: String
+  item_id: String
+  likes: [UpdateLike]
+  pinned_to_top: [UpdatePinnedToTop]
+  replies: [Reply]
+  assets: [Asset]
+}
+
+type UpdateLike {
+  id: ID
+  reaction_type: String
+  updated_at: ISO8601DateTime
+}
+
+type UpdateLikes {
+  id: ID!
+  reaction_type: String
+}
+
+type UpdateBoardRelation {
+  id: ID!
+  board: Board
+}
+
+type UpdatePinnedToTop {
+  item_id: String
+}
+
+"""A reply to an update."""
+type Reply {
+  id: ID!
+  body: String!
+  text_body: String
+  created_at: ISO8601DateTime
+  updated_at: ISO8601DateTime
+  creator: User
+  creator_id: String
+  likes: [UpdateLike]
+}
+
+# ─── Tag ──────────────────────────────────────────────────────────────────────
+
+"""A tag that can be attached to items."""
+type Tag {
+  id: ID!
+  name: String!
+  color: String!
+}
+
+"""Minimal tag details."""
+type TagDetails {
+  id: ID!
+  name: String!
+}
+
+# ─── Asset / File ─────────────────────────────────────────────────────────────
+
+"""An uploaded asset (file)."""
+type Asset {
+  id: ID!
+  name: String!
+  url: String!
+  url_thumbnail: String
+  created_at: ISO8601DateTime
+  file_extension: String!
+  file_size: Int!
+  original_geometry: String
+  public_url: String
+  uploaded_by: User
+}
+
+# ─── Board View ───────────────────────────────────────────────────────────────
+
+"""A view (visualisation) configured on a board."""
+type BoardView {
+  id: ID!
+  name: String!
+  settings_str: String
+  type: String!
+}
+
+"""A view object (generic)."""
+type View {
+  id: ID!
+  name: String!
+  type: ViewType
+  settings_str: String
+}
+
+# ─── Webhook ──────────────────────────────────────────────────────────────────
+
+"""A webhook subscription registered on a board."""
+type Webhook {
+  id: ID!
+  board_id: ID!
+  event: WebhookEventType!
+  config: String
+}
+
+# ─── Notification ─────────────────────────────────────────────────────────────
+
+"""A notification sent to a user."""
+type Notification {
+  id: ID!
+  text: String!
+}
+
+# ─── Event ────────────────────────────────────────────────────────────────────
+
+"""An activity log event."""
+type Event {
+  id: ID
+  user_id: ID
+  created_at: ISO8601DateTime
+  type: String
+  data: String
+}
+
+# ─── Complexity ───────────────────────────────────────────────────────────────
+
+"""Query complexity information."""
+type Complexity {
+  before: Int!
+  after: Int!
+  query: String
+  reset_in_x_seconds: Int
+}
+
+# ─── Folder ───────────────────────────────────────────────────────────────────
+
+type Folder {
+  id: ID!
+  name: String!
+  color: String
+  parent: Folder
+  children: [Folder]
+  boards: [Board]
+  workspace: Workspace
+  owner: User
+  created_at: ISO8601DateTime
+}
+
+# ─── Doc / WorkDoc ────────────────────────────────────────────────────────────
+
+type Document {
+  id: ID!
+  name: String
+  object_id: ID
+  kind: String
+  workspace: Workspace
+  created_by: User
+  blocks: [DocumentBlock]
+  settings: DocumentSettings
+  url: String
+  created_at: ISO8601DateTime
+  updated_at: ISO8601DateTime
+}
+
+type DocumentBlock {
+  id: ID!
+  type: String
+  content: String
+  parent_block_id: ID
+  position: Float
+  created_at: ISO8601DateTime
+  updated_at: ISO8601DateTime
+}
+
+type DocumentSettings {
+  alignment: String
+  icon: String
+}
+
+# ─── Input Types ──────────────────────────────────────────────────────────────
+
+input ItemsQuery {
+  ids: [ID]
+  rules: [ItemsQueryRule]
+  operator: ItemsQueryRuleOperator
+  order_by: [ItemsQueryOrderBy]
+}
+
+input ItemsQueryRule {
+  column_id: String!
+  compare_value: [String]
+  compare_attribute: String
+  operator: ItemsQueryRuleOperator
+}
+
+input ItemsQueryOrderBy {
+  column_id: String!
+  direction: ItemsQueryOrderByDirection
+}
+
+enum ItemsQueryRuleOperator {
+  any_of
+  not_any_of
+  is_empty
+  is_not_empty
+  greater_than
+  greater_than_or_equals
+  lower_than
+  lower_than_or_equal
+  between
+  not_contains_text
+  contains_text
+  contains_terms
+  starts_with
+  end_with
+  within_the_next
+  within_the_last
+}
+
+enum ItemsQueryOrderByDirection {
+  asc
+  desc
+}
+
+input CreateBoardInput {
+  board_name: String!
+  board_kind: BoardKind!
+  workspace_id: ID
+  folder_id: ID
+  template_id: Int
+  description: String
+  board_owner_ids: [Int]
+  board_subscriber_ids: [Int]
+  board_owner_team_ids: [Int]
+}
+
+input UpdateBoardInput {
+  board_attribute: BoardAttribute!
+  new_value: String!
+}
+
+enum BoardAttribute {
+  communication
+  description
+  name
+}
+
+input CreateGroupInput {
+  group_name: String!
+  relative_position_after: String
+  relative_position_before: String
+  color: String
+  position: String
+}
+
+input CreateItemInput {
+  item_name: String!
+  board_id: ID!
+  group_id: String
+  column_values: JSON
+  create_labels_if_missing: Boolean
+}
+
+input UpdateItemInput {
+  item_id: ID!
+  board_id: ID!
+  column_values: JSON!
+  create_labels_if_missing: Boolean
+}
+
+input ColumnValueInput {
+  id: String!
+  value: String!
+}
+
+input CreateColumnInput {
+  board_id: ID!
+  title: String!
+  column_type: ColumnType!
+  defaults: JSON
+  description: String
+  id: String
+  after_column_id: String
+}
+
+input CreateWebhookInput {
+  board_id: ID!
+  url: String!
+  event: WebhookEventType!
+  config: JSON
+}
+
+input CreateWorkspaceInput {
+  name: String!
+  kind: WorkspaceKind!
+  description: String
+}
+
+input UpdateWorkspaceInput {
+  name: String
+  kind: WorkspaceKind
+  description: String
+}
+
+# ─── Query ────────────────────────────────────────────────────────────────────
+
+type Query {
+  """Fetch the currently authenticated account."""
+  account: Account
+
+  """Fetch details of the acting user."""
+  me: User
+
+  """Fetch all users or filter by IDs, kind, or email."""
+  users(
+    ids: [ID]
+    kind: UserKind
+    email: String
+    newest_first: Boolean
+    non_active: Boolean
+    limit: Int
+    page: Int
+    name: String
+  ): [User]
+
+  """Fetch teams, optionally filtered by IDs."""
+  teams(ids: [ID]): [Team]
+
+  """Fetch boards, optionally filtered by various criteria."""
+  boards(
+    ids: [ID]
+    board_kind: BoardKind
+    limit: Int
+    page: Int
+    state: State
+    order_by: BoardsOrderBy
+    workspace_ids: [ID]
+    folder_id: Int
+  ): [Board]
+
+  """Fetch items by IDs."""
+  items(
+    ids: [ID]!
+    limit: Int
+    page: Int
+    newest_first: Boolean
+    exclude_nonactive: Boolean
+  ): [Item]
+
+  """Fetch items from a board filtered by column values."""
+  items_page_by_column_values(
+    limit: Int!
+    cursor: String
+    board_id: ID!
+    columns: [ItemsPageByColumnValuesQuery]
+  ): ItemsPageByColumnValues
+
+  """Fetch updates by IDs or item."""
+  updates(
+    ids: [ID]
+    limit: Int
+    page: Int
+  ): [Update]
+
+  """Fetch tags by IDs."""
+  tags(ids: [ID]): [Tag]
+
+  """Fetch workspaces."""
+  workspaces(
+    ids: [ID]
+    kind: WorkspaceKind
+    state: State
+    limit: Int
+    page: Int
+    order_by: WorkspacesOrderBy
+  ): [Workspace]
+
+  """Fetch folders."""
+  folders(
+    ids: [ID]
+    workspace_ids: [ID]
+    limit: Int
+    page: Int
+  ): [Folder]
+
+  """Fetch assets by IDs."""
+  assets(ids: [ID]!): [Asset]
+
+  """Fetch webhooks for a board."""
+  webhooks(
+    board_id: ID!
+    app_webhooks_only: Boolean
+  ): [Webhook]
+
+  """Fetch complexity budget information."""
+  complexity: Complexity
+
+  """Fetch documents."""
+  docs(
+    ids: [ID]
+    workspace_ids: [ID]
+    object_ids: [ID]
+    doc_kind: String
+    limit: Int
+    page: Int
+    order_by: DocsOrderBy
+  ): [Document]
+}
+
+enum BoardsOrderBy {
+  created_at
+  used_at
+}
+
+enum WorkspacesOrderBy {
+  created_at
+}
+
+enum DocsOrderBy {
+  created_at
+}
+
+input ItemsPageByColumnValuesQuery {
+  column_id: String!
+  column_values: [String]!
+}
+
+# ─── Mutation ─────────────────────────────────────────────────────────────────
+
+type Mutation {
+  """Create a new board."""
+  create_board(
+    board_name: String!
+    board_kind: BoardKind!
+    workspace_id: ID
+    folder_id: ID
+    template_id: Int
+    description: String
+    board_owner_ids: [Int]
+    board_subscriber_ids: [Int]
+  ): Board
+
+  """Duplicate an existing board."""
+  duplicate_board(
+    board_id: ID!
+    duplicate_type: DuplicateBoardType!
+    board_name: String
+    workspace_id: ID
+    folder_id: ID
+    keep_subscribers: Boolean
+  ): BoardDuplication
+
+  """Archive a board."""
+  archive_board(board_id: ID!): Board
+
+  """Delete a board."""
+  delete_board(board_id: ID!): Board
+
+  """Update a board attribute."""
+  update_board(
+    board_id: ID!
+    board_attribute: BoardAttribute!
+    new_value: String!
+  ): JSON
+
+  """Add subscribers to a board."""
+  add_subscribers_to_board(
+    board_id: ID!
+    user_ids: [Int]!
+    kind: SubscriberKind
+  ): [BoardsSubscriber]
+
+  """Delete a subscriber from a board."""
+  delete_subscribers_from_board(
+    board_id: ID!
+    user_ids: [Int]!
+  ): [BoardsSubscriber]
+
+  """Create a group on a board."""
+  create_group(
+    board_id: ID!
+    group_name: String!
+    relative_position_after: String
+    relative_position_before: String
+    color: String
+    position: String
+  ): Group
+
+  """Duplicate a group."""
+  duplicate_group(
+    board_id: ID!
+    group_id: String!
+    add_to_top: Boolean
+    group_title: String
+  ): Group
+
+  """Archive a group."""
+  archive_group(board_id: ID!, group_id: String!): Group
+
+  """Delete a group."""
+  delete_group(board_id: ID!, group_id: String!): Group
+
+  """Update a group."""
+  update_group(
+    board_id: ID!
+    group_id: String!
+    group_attribute: GroupAttribute!
+    new_value: String!
+  ): JSON
+
+  """Move items to a group."""
+  move_item_to_group(item_id: ID!, group_id: String!): Item
+
+  """Move items to a board."""
+  move_item_to_board(
+    item_id: ID!
+    board_id: ID!
+    group_id: String
+    columns_mapping: [ColumnMappingInput]
+    subitems_columns_mapping: [ColumnMappingInput]
+  ): Item
+
+  """Create a new item."""
+  create_item(
+    item_name: String!
+    board_id: ID!
+    group_id: String
+    column_values: JSON
+    create_labels_if_missing: Boolean
+  ): Item
+
+  """Create a subitem."""
+  create_subitem(
+    parent_item_id: ID!
+    item_name: String!
+    column_values: JSON
+    create_labels_if_missing: Boolean
+  ): Item
+
+  """Duplicate an item."""
+  duplicate_item(
+    board_id: ID!
+    item_id: ID!
+    with_updates: Boolean
+  ): Item
+
+  """Archive an item."""
+  archive_item(item_id: ID!): Item
+
+  """Delete an item."""
+  delete_item(item_id: ID!): Item
+
+  """Clear item updates."""
+  clear_item_updates(item_id: ID!): Item
+
+  """Change a simple column value."""
+  change_simple_column_value(
+    board_id: ID!
+    item_id: ID!
+    column_id: String!
+    value: String!
+    create_labels_if_missing: Boolean
+  ): Item
+
+  """Change a column value."""
+  change_column_value(
+    board_id: ID!
+    item_id: ID!
+    column_id: String!
+    value: JSON!
+    create_labels_if_missing: Boolean
+  ): Item
+
+  """Change multiple column values at once."""
+  change_multiple_column_values(
+    item_id: ID!
+    board_id: ID!
+    column_values: JSON!
+    create_labels_if_missing: Boolean
+  ): Item
+
+  """Create a column on a board."""
+  create_column(
+    board_id: ID!
+    title: String!
+    column_type: ColumnType!
+    defaults: JSON
+    description: String
+    id: String
+    after_column_id: String
+  ): Column
+
+  """Change a column's title."""
+  change_column_title(
+    board_id: ID!
+    column_id: String!
+    title: String!
+  ): Column
+
+  """Change column metadata."""
+  change_column_metadata(
+    board_id: ID!
+    column_id: String!
+    column_property: ColumnProperty!
+    value: String!
+  ): Column
+
+  """Delete a column."""
+  delete_column(board_id: ID!, column_id: String!): Column
+
+  """Create an update (comment) on an item."""
+  create_update(
+    item_id: ID
+    body: String!
+    parent_id: ID
+  ): Update
+
+  """Edit an existing update."""
+  edit_update(
+    id: ID!
+    body: String!
+  ): Update
+
+  """Delete an update."""
+  delete_update(id: ID!): Update
+
+  """Like an update."""
+  like_update(update_id: ID!): Update
+
+  """Create a reply to an update."""
+  create_reply(
+    update_id: ID!
+    body: String!
+  ): Reply
+
+  """Delete a reply."""
+  delete_reply(reply_id: ID!): Reply
+
+  """Add a file to an update."""
+  add_file_to_update(
+    update_id: ID!
+    file: Upload!
+  ): Asset
+
+  """Add a file to a column value."""
+  add_file_to_column(
+    item_id: ID!
+    column_id: String!
+    file: Upload!
+  ): Asset
+
+  """Create a tag."""
+  create_tag(
+    tag_name: String!
+    board_id: ID
+  ): Tag
+
+  """Create a workspace."""
+  create_workspace(
+    name: String!
+    kind: WorkspaceKind!
+    description: String
+  ): Workspace
+
+  """Update a workspace."""
+  update_workspace(
+    id: ID!
+    attributes: UpdateWorkspaceInput!
+  ): Workspace
+
+  """Delete a workspace."""
+  delete_workspace(workspace_id: ID!): Workspace
+
+  """Add users to a workspace."""
+  add_users_to_workspace(
+    workspace_id: ID!
+    user_ids: [Int]!
+    kind: WorkspaceKind
+  ): [User]
+
+  """Delete users from a workspace."""
+  delete_users_from_workspace(
+    workspace_id: ID!
+    user_ids: [Int]!
+  ): [User]
+
+  """Add teams to a workspace."""
+  add_teams_to_workspace(
+    workspace_id: ID!
+    team_ids: [Int]!
+    kind: WorkspaceKind
+  ): [Team]
+
+  """Delete teams from a workspace."""
+  delete_teams_from_workspace(
+    workspace_id: ID!
+    team_ids: [Int]!
+  ): [Team]
+
+  """Create a webhook on a board."""
+  create_webhook(
+    board_id: ID!
+    url: String!
+    event: WebhookEventType!
+    config: JSON
+  ): Webhook
+
+  """Delete a webhook."""
+  delete_webhook(id: ID!): Webhook
+
+  """Create a notification."""
+  create_notification(
+    user_id: ID!
+    target_id: ID!
+    text: String!
+    target_type: NotificationTargetType!
+  ): Notification
+
+  """Add teams to a board."""
+  add_teams_to_board(
+    board_id: ID!
+    team_ids: [Int]!
+    kind: SubscriberKind
+  ): [Team]
+
+  """Delete teams from a board."""
+  delete_teams_from_board(
+    board_id: ID!
+    team_ids: [Int]!
+  ): [Team]
+
+  """Invite users to account."""
+  invite_users_to_account(
+    emails: [String]!
+    user_role: UserRole
+  ): [User]
+
+  """Deactivate a user."""
+  deactivate_users(user_ids: [Int]!): [User]
+
+  """Create a folder."""
+  create_folder(
+    name: String!
+    workspace_id: ID!
+    color: String
+    parent_folder_id: ID
+  ): Folder
+
+  """Update a folder."""
+  update_folder(
+    folder_id: ID!
+    name: String
+    color: String
+    parent_folder_id: ID
+  ): Folder
+
+  """Delete a folder."""
+  delete_folder(folder_id: ID!): Folder
+}
+
+# ─── Subscription ─────────────────────────────────────────────────────────────
+
+type Subscription {
+  """Subscribe to item created events on a board."""
+  item_created(board_id: ID!): Event
+
+  """Subscribe to item deleted events on a board."""
+  item_deleted(board_id: ID!): Event
+
+  """Subscribe to column value changed events."""
+  column_values_updated(board_id: ID!): Event
+}
+
+# ─── Auxiliary Enums / Types ─────────────────────────────────────────────────
+
+enum DuplicateBoardType {
+  duplicate_board_with_pulses
+  duplicate_board_with_pulses_and_updates
+  duplicate_board_structure_only
+}
+
+type BoardDuplication {
+  board: Board!
+}
+
+enum GroupAttribute {
+  color
+  relative_position_after
+  relative_position_before
+  title
+}
+
+enum ColumnProperty {
+  description
+  title
+}
+
+input ColumnMappingInput {
+  source: String!
+  target: String
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+  VIEWER
+  GUEST
+}
