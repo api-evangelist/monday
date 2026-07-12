@@ -25,10 +25,16 @@ apis:
   - url: graphql/monday-graphql.md
     type: GraphQL
 common:
+- type: TrustCenter
+  url: security/monday-trust-center.yml
+- type: DomainSecurity
+  url: security/monday-domain-security.yml
 - type: Website
   url: https://api.developer.monday.com/docs
 - type: PublicAPIsListing
   url: https://github.com/public-apis/public-apis
+- url: https://monday.com/blog
+  type: Blog
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com
