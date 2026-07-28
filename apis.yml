@@ -25,6 +25,10 @@ apis:
   - url: graphql/monday-graphql.md
     type: GraphQL
 common:
+- type: AgentCard
+  url: a2a/monday-a2a.yml
+  name: A2A Agent Card
+  description: Agent Card served at /.well-known/agent-card.json (flavored against A2A 1.0.0).
 - type: TrustCenter
   url: security/monday-trust-center.yml
 - type: DomainSecurity
